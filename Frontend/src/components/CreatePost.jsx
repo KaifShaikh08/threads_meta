@@ -23,9 +23,10 @@ import {
 import { useRef, useState } from "react";
 import usePreviewImg from "../Hooks/usePreviewImg";
 import { BsFillImageFill } from "react-icons/bs";
-import useShowToast from "../Hooks/useShowToast";
-import { useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue } from "recoil";
 import userAtom from "../atoms/userAtom";
+import postAtom from "../atoms/postsAtom";
+import useShowToast from "../hooks/useShowToast";
 
 const CreatePost = () => {
   const user = useRecoilValue(userAtom);
@@ -37,6 +38,7 @@ const CreatePost = () => {
   const fileRef = useRef(null);
   const showToast = useShowToast();
   const [loading, setLoading] = useState(false);
+  const [posts, setPosts] = useRecoilState(postAtom);
 
   const handleTextChange = (e) => {
     const inputText = e.target.value;
@@ -74,6 +76,7 @@ const CreatePost = () => {
         return;
       }
       showToast("Success", data.message, "success");
+      setPosts([data, ...posts]);
       onClose();
       setLoading(false);
       setPostText("");

@@ -1,36 +1,41 @@
 import React, { useEffect, useState } from "react";
 import UserHeader from "../components/UserHeader";
-import UserPost from "../components/UserPost";
 import { useParams } from "react-router-dom";
 import { Flex, Spinner } from "@chakra-ui/react";
-import useShowToast from "../hooks/useShowToast";
+import useShowToast from "../Hooks/useShowToast";
+import Post from "../components/Post";
+import useGetUserProfile from "../Hooks/useGetUserProfile";
+import { useRecoilState } from "recoil";
+import postsAtom from "../atoms/postsAtom";
 
 const UserPage = () => {
   const showToast = useShowToast();
-
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useGetUserProfile();
   const { username } = useParams();
+  const [posts, setPosts] = useRecoilState(postsAtom);
+  const [fetching, setFetching] = useState(true);
+
   useEffect(() => {
-    const getUser = async () => {
+    const getPost = async () => {
       try {
-        const res = await fetch(`/api/users/profile/${username}`);
+        const res = await fetch(`/api/posts/user/${username}`);
 
         const data = await res.json();
         if (data.error) {
-          showToast("Error", data.error, "error");
-          return;
+          return showToast("Error", data.error, "error");
         }
-        setUser(data);
+
         // console.log(data);
+        setPosts(data);
       } catch (error) {
         showToast("Error", error, "error");
+        setPosts([]);
       } finally {
-        setLoading(false);
+        setFetching(false);
       }
     };
-    getUser();
-  }, [username, showToast]);
+    getPost();
+  }, [username, showToast, setPosts]);
 
   if (!user && loading) {
     return (
@@ -51,9 +56,17 @@ const UserPage = () => {
   return (
     <>
       <UserHeader user={user} />
-      <UserPost />
-      <UserPost />
-      <UserPost />
+
+      {!fetching && posts.length === 0 && <h1>User has not posts.</h1>}
+      {fetching && (
+        <Flex justifyContent={"center"} my={12}>
+          <Spinner size={"xl"} />
+        </Flex>
+      )}
+
+      {posts.map((post) => (
+        <Post key={post._id} post={post} postedBy={post.postedBy} />
+      ))}
     </>
   );
 };

@@ -29,7 +29,7 @@ export const createPost = async (req, res) => {
 
     const post = await Post.create({ postedBy, text, img });
 
-    return res.status(201).json({ message: "Post created successfully", post });
+    return res.status(201).json(post);
   } catch (error) {
     console.log(error);
     return res.json({ message: error.message });
@@ -44,10 +44,9 @@ export const getPost = async (req, res) => {
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     } else {
-      return res.json({ message: "Post found", post });
+      return res.json(post);
     }
   } catch (error) {
-    console.log(error);
     return res.json({ error: error.message });
   }
 };
@@ -61,6 +60,12 @@ export const deletePost = async (req, res) => {
   if (post.postedBy.toString() !== req.user._id.toString()) {
     return res.json({ error: "Unauthorized to delete this post" });
   }
+
+  if (post.img) {
+    const imgId = post.img.split("/").pop().split(".")[0];
+    await Cloudinary.uploader.destroy(imgId);
+  }
+
   await Post.findByIdAndDelete(id);
   return res.json({ message: "Deleted Successfully" });
 };
@@ -82,7 +87,7 @@ export const likeUnlikePost = async (req, res) => {
       //Like Post
       post.likes.push(userId);
       await post.save();
-      return res.json({ messag: "You like this post" });
+      return res.json({ message: "You like this post" });
     }
   } catch (error) {
     return res.json({ error: error.message });
@@ -104,9 +109,9 @@ export const replyToPost = async (req, res) => {
     return res.json({ message: "Post not found" });
   }
 
-  const reply = { userId, userProfilePic, username };
+  const reply = { userId, userProfilePic, username, text };
   await post.replies.push(reply);
-  return res.json({ message: "Replied Successfully ", post });
+  return res.json(reply);
 };
 
 export const getFeed = async (req, res) => {
@@ -120,4 +125,20 @@ export const getFeed = async (req, res) => {
   });
 
   return res.json(feedPost);
+};
+
+export const getUserPost = async (req, res) => {
+  const { username } = req.params;
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ error: "User not found" });
+
+    const posts = await Post.find({ postedBy: user._id }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    return res.json(error.message);
+  }
 };
